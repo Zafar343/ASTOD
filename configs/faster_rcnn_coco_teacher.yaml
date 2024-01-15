@@ -1,6 +1,6 @@
 # Dataset
 dataset: coco
-data_path: coco
+data_path: /home/zafar/old_pc/data_sets/coco2017/
 batch_size: 16 # 16x4 gpus
 workers: 5
 data_augmentation: hard

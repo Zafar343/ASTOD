@@ -14,6 +14,12 @@ from engine import label
 import presets
 import utils
 
+# from yolov5.utils.datasets import create_dataloader
+# from yolov5 import val
+# from yolov5.utils.general import (LOGGER, box_iou, check_dataset, check_img_size, check_requirements, check_yaml,
+                        #    coco80_to_coco91_class, colorstr, increment_path, non_max_suppression, print_args,
+                        #    scale_coords, xywh2xyxy, xyxy2xywh)
+
 
 def get_dataset(dataset, root, image_set, transform, ann_file):
 
@@ -109,7 +115,7 @@ def main(args):
     print("Creating model")
     # Load checkpoint
     checkpoint = torch.load(args.checkpoint, map_location=device)
-    print(f'mAP: {checkpoint["map"]}')
+    # print(f'mAP: {checkpoint["map"]}')
     anchor_generator = checkpoint["anchor_generator"]
     kwargs = {}
     kwargs["rpn_anchor_generator"] = anchor_generator

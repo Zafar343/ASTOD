@@ -1,0 +1,76 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "label",
+            "type": "python",
+            "request": "launch",
+            "program": "src/label_copy.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--config",
+                "configs/faster_rcnn_coco_teacher.yaml",
+                "--train-file",
+                "/home/zafar/old_pc/data_sets/coco2017/annotations/semi_supervised/instances_train2017.1@10.json",
+                "--unlabeled-file",
+                "/home/zafar/old_pc/data_sets/coco2017/annotations/semi_supervised/instances_train2017.1@10-unlabeled_new.json",
+                "--output-dir",
+                "/home/zafar/old_pc/data_sets/COCO2017/annotations/semi_supervised/pseudo_labels",
+                "--checkpoint",
+                "fasterrcnn_resnet50_fpn.pt",
+                "--customData",
+                "/home/zafar/old_pc/data_sets/waymo_dataset/3class_waymo/cleaned_waymo/test.txt",
+                "--save_txt",
+                "True"
+            ]
+        },
+        {
+            "name": "label_original",
+            "type": "python",
+            "request": "launch",
+            "program": "src/label.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--config",
+                "configs/faster_rcnn_coco_teacher.yaml",
+                "--train-file",
+                "/home/zafar/old_pc/data_sets/coco2017/annotations/semi_supervised/instances_train2017.1@10.json",
+                "--unlabeled-file",
+                "/home/zafar/old_pc/data_sets/coco2017/annotations/semi_supervised/instances_train2017.1@10-unlabeled.json",
+                "--output-dir",
+                "/home/zafar/old_pc/data_sets/COCO2017/annotations/semi_supervised/pseudo_labels",
+                "--checkpoint",
+                "fasterrcnn_resnet50_fpn.pt"
+            ]
+        },
+        {
+            "name": "train",
+            "type": "python",
+            "request": "launch",
+            "program": "src/train.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--config",
+                "configs/faster_rcnn_coco_teacher.yaml",
+                "--train-file",
+                "/home/zafar/old_pc/data_sets/coco2017/annotations/instances_train2017.json",
+                // "--output-dir",
+                // "/home/zafar/ASTOD/",  
+            ]
+        }
+    ]
+}

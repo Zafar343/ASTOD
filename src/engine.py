@@ -10,6 +10,8 @@ import utils
 from transforms import PseudoLabel
 from torchvision.ops import boxes as box_ops
 
+from yolov5.utils.general import check_img_size, non_max_suppression
+
 @torch.inference_mode()
 def evaluate(model, data_loader, device):
     n_threads = torch.get_num_threads()
@@ -65,7 +67,7 @@ def label(model, data_loader, device):
 
     inverse = PseudoLabel(scale_factor=0.5, scale=True, flip=True)
 
-    for batch, image_id in metric_logger.log_every(data_loader, 100, header):
+    for batch, image_id, info_orig, info_resize in metric_logger.log_every(data_loader, 100, header):
         
         batch = batch[0]
         image_id = image_id[0]
@@ -78,33 +80,44 @@ def label(model, data_loader, device):
             img, _ = data
 
             with torch.inference_mode():
-                outputs = model(img.to(device).unsqueeze(0))[0]
-            outputs = {k: v.to(cpu_device) for k, v in outputs.items()}
+                outputs = model(img.to(device).unsqueeze(0))
+                outputs = non_max_suppression(outputs, 0.4, 0.45)[0].to(cpu_device)
+            # outputs = {k: v.to(cpu_device) for k, v in outputs.items()}
+            if outputs.shape[0] > 0:
+                _outputs = {"boxes":[], "scores":[],"labels":[]}
+                for i in range(outputs.shape[0]):
+                    _outputs["boxes"].append(outputs[i][:4].tolist())
+                    _outputs["scores"].append(outputs[i][4].item())
+                    _outputs["labels"].append(outputs[i][5].item())
+                
+                _outputs["boxes"]  = torch.tensor(_outputs["boxes"])
+                _outputs["scores"] = torch.tensor(_outputs["scores"])
+                _outputs["labels"] = torch.tensor(_outputs["labels"])
+                
+                if aug == "normal":
+                    boxes.append(_outputs["boxes"])
+                    scores.append(_outputs["scores"])
+                    labels.append(_outputs["labels"])
 
-            if aug == "normal":
-                boxes.append(outputs["boxes"])
-                scores.append(outputs["scores"])
-                labels.append(outputs["labels"])
+                if aug == "flip":
+                    _, outputs = inverse.flip_(img, _outputs)
+                    boxes.append(outputs["boxes"])
+                    scores.append(outputs["scores"])
+                    labels.append(outputs["labels"])
 
-            if aug == "flip":
-                _, outputs = inverse.flip_(img, outputs)
-                boxes.append(outputs["boxes"])
-                scores.append(outputs["scores"])
-                labels.append(outputs["labels"])
+                if aug == "scale":
+                    _, outputs = inverse.scale_(img, _outputs)
+                    boxes.append(outputs["boxes"])
+                    scores.append(outputs["scores"])
+                    labels.append(outputs["labels"])
 
-            if aug == "scale":
-                _, outputs = inverse.scale_(img, outputs)
-                boxes.append(outputs["boxes"])
-                scores.append(outputs["scores"])
-                labels.append(outputs["labels"])
-
-            if aug == "scale_flip":
-                img, outputs = inverse.scale_(img, outputs)
-                _, outputs = inverse.flip_(img, outputs)
-                boxes.append(outputs["boxes"])
-                scores.append(outputs["scores"])
-                labels.append(outputs["labels"])
-
+                if aug == "scale_flip":
+                    img, outputs = inverse.scale_(img, _outputs)
+                    _, outputs = inverse.flip_(img, outputs)
+                    boxes.append(outputs["boxes"])
+                    scores.append(outputs["scores"])
+                    labels.append(outputs["labels"])
+                # print('done')
         if len(boxes) != 0:
             boxes = torch.vstack(boxes)
             scores = torch.cat(scores)
@@ -112,6 +125,10 @@ def label(model, data_loader, device):
 
         keep = box_ops.batched_nms(boxes, scores, labels, 0.5)
         boxes, scores, labels = boxes[keep], scores[keep], labels[keep]
+
+        # scaling detections back to original image size
+        boxes[:, 0::2] = boxes[:, 0::2] * info_orig[0][0].item() / info_resize[0][0].item()
+        boxes[:, 1::2] = boxes[:, 1::2] * info_orig[0][1].item() / info_resize[0][0].item()
 
         results[image_id] = {"boxes": boxes.tolist(), "scores": scores.tolist(), "labels": labels.tolist()}
 

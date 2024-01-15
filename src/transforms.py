@@ -24,8 +24,14 @@ class Compose:
 
     def __call__(self, image, target):
         for t in self.transforms:
-            image, target = t(image, target)
-        return image, target
+            if target is None:
+                image = t(image, target=None)
+            else:    
+                image, target = t(image, target)
+        if target is None:
+            return image
+        else:
+            return image, target
 
 
 class RandomHorizontalFlip(T.RandomHorizontalFlip):
@@ -479,6 +485,8 @@ class PseudoLabel(nn.Module):
         
         if target is not None:
             return r_image, r_target
+        else:
+            return r_image
         
     def flip_(self, image, target):
         
@@ -502,6 +510,8 @@ class PseudoLabel(nn.Module):
         f_image = F.convert_image_dtype(f_image, torch.float)
         if target is not None:
             return f_image, f_target
+        else:
+            return f_image
         
     def forward(self, image, target):
                 
@@ -509,17 +519,32 @@ class PseudoLabel(nn.Module):
         
         # Rescale
         if self.scale:
-            r_image, r_target = self.scale_(image, target)
-            data_dict["scale"] = (r_image, r_target)
+            if target is None:
+                r_image = self.scale_(image, target=None)
+                data_dict["scale"] = (r_image, None)
+            else:
+                r_image, r_target = self.scale_(image, target)
+                data_dict["scale"] = (r_image, r_target)
         
         # Flip
-        if self.flip: 
-            f_image, f_target = self.flip_(image, target)
-            data_dict["flip"] = (f_image, f_target)
+        if self.flip:
+            if target is None:
+                f_image = self.flip_(image, target=None)
+                data_dict["flip"] = (f_image, None)
+            else:     
+                f_image, f_target = self.flip_(image, target)
+                data_dict["flip"] = (f_image, f_target)
             
         # Rescale and flip
         if self.scale and self.flip:
-            r_f_image, r_f_target = self.flip_(r_image, r_target)
-            data_dict["scale_flip"] = (r_f_image, r_f_target)
+            if target is None:
+                r_f_image = self.flip_(r_image, target=None)
+                data_dict["scale_flip"] = (r_f_image, None)
+            else:    
+                r_f_image, r_f_target = self.flip_(r_image, r_target)
+                data_dict["scale_flip"] = (r_f_image, r_f_target)
         
-        return data_dict, target["image_id"].item()
+        if target is None:
+            return data_dict
+        else:
+            return data_dict, target["image_id"].item()

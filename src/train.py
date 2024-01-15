@@ -48,7 +48,7 @@ def get_args_parser(add_help=True):
                         help="training file")
     parser.add_argument("--output-dir", default="",
                         help="path where to save, leave empty if no saving")
-    parser.add_argument("--seed", default=0, type=int)
+    parser.add_argument("--seed", default=1, type=int)
     parser.add_argument("--split", default=10, type=int)
     parser.add_argument("--resume", default="", type=str,
                         help="resume from checkpoint")
@@ -89,12 +89,12 @@ def main(args):
     for k, v in cfg.items():
         print(f"{k}: {v}")
 
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-    else:
-        print("No cuda device detected")
-        return
-    
+    # if torch.cuda.is_available():
+    #     device = torch.device("cuda")
+    # else:
+    #     print("No cuda device detected")
+    #     return
+    device = torch.device("cpu")
     seed = args.seed
     torch.manual_seed(seed)
     np.random.seed(seed)

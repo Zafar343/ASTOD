@@ -8,7 +8,9 @@ import torchvision
 import transforms as T
 from pycocotools import mask as coco_mask
 from pycocotools.coco import COCO
-
+from torch.utils.data import Dataset
+from PIL import Image
+import numpy as np
 
 class FilterAndRemapCocoCategories:
     def __init__(self, categories, remap=True):
@@ -241,6 +243,7 @@ class CocoDetection(torchvision.datasets.CocoDetection):
 
     def __getitem__(self, idx):
         img, target = super().__getitem__(idx)
+        img = img.resize((640,640))
         # img, target = self.images[idx], self.annots[idx]
         target = copy.deepcopy(target)
         for t in target:
@@ -250,6 +253,45 @@ class CocoDetection(torchvision.datasets.CocoDetection):
         if self._transforms is not None:
             img, target = self._transforms(img, target)
         return img, target
+
+class CustomDataset(Dataset):
+    def __init__(self, data, transforms, train=False):
+        self._transforms = transforms
+        self.train = train
+        self.images = self._load_data(data)
+
+    def _load_data(self,file):
+        images = []
+        with open(file, 'r') as f:
+            for line in f:
+                images.append(line.split()[0])     
+        return images
+
+    def nroi_at(self,i):
+        im_path = self.images[i]
+        im    =  Image.open(im_path)
+        name  =  im_path.split('/')[-1]
+        return im, name    
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        im_data, name = self.nroi_at(idx)
+        # w, h
+        im_info_orig = torch.FloatTensor([im_data.size[0], im_data.size[1]])
+        im_data = im_data.resize((640,640))
+        im_info_resize = torch.FloatTensor([im_data.size[0], im_data.size[1]])
+        # img, target = self.images[idx], self.annots[idx]
+        # target = []
+        # target = copy.deepcopy(target)
+        # for t in target:
+        #     t["category_id"] = self.mapping[t["category_id"]]
+        # image_id = self.ids[idx]
+        # target = dict(image_id=image_id, annotations=target)
+        if self._transforms is not None:
+            im_data = self._transforms(im_data, target = None)
+        return im_data, name, im_info_orig, im_info_resize
 
 
 def get_coco(root, image_set, transforms, ann_file, dataset, use_score):
@@ -265,13 +307,14 @@ def get_coco(root, image_set, transforms, ann_file, dataset, use_score):
             ann_file = ann_file
             img_folder = os.path.join(root, "train2017")
         else:
-            ann_file = "coco/annotations/instances_val2017.json"
+            ann_file = "/home/zafar/old_pc/data_sets/coco2017/annotations/instances_val2017.json"
             img_folder = os.path.join(root, "val2017")
     elif dataset == "dior":
         img_folder = os.path.join(root, "all_images")
         if image_set == "eval":
             ann_file = "dior/annotations/eval_annotations.json"   
-
+    elif dataset == "custom":
+        image_folder = root
     dataset = CocoDetection(img_folder, ann_file, transforms=transforms, use_score=use_score)
 
     if image_set == "train":
